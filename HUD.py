@@ -31,7 +31,14 @@ lat, lon = 32.0853, 34.7818
 bus = smbus2.SMBus(1)
 MPU_ADDR = 0x68
 AK8963_ADDR = 0x0C
+ak8963_enabled = False
+
 bus.write_byte_data(MPU_ADDR, 0x6B, 0)  # Wake up MPU
+bus.write_byte_data(MPU_ADDR, 0x37, 0x02)  # Enable bypass to access AK8963 directly
+bus.write_byte_data(MPU_ADDR, 0x6A, 0x00)  # Disable master mode on the MPU
+bus.write_byte_data(AK8963_ADDR, 0x0A, 0x16)  # AK8963: 16-bit output, continuous mode 2 (100 Hz)
+time.sleep(0.01)  # Allow magnetometer startup time per datasheet
+ak8963_enabled = True
 
 def read_word(adr, addr):
     high = bus.read_byte_data(adr, addr)
@@ -41,15 +48,27 @@ def read_word(adr, addr):
         val = -((65535 - val) + 1)
     return val
 
+def read_word_le(adr, addr):
+    low = bus.read_byte_data(adr, addr)
+    high = bus.read_byte_data(adr, addr+1)
+    val = (high << 8) + low
+    if val >= 0x8000:
+        val = -((65535 - val) + 1)
+    return val
+
+
 def get_heading():
+    if not ak8963_enabled:
+        return 0
+
     try:
-        hx = read_word(AK8963_ADDR, 0x03)
-        hy = read_word(AK8963_ADDR, 0x05)
+        hx = read_word_le(AK8963_ADDR, 0x03)
+        hy = read_word_le(AK8963_ADDR, 0x05)
         heading = math.degrees(math.atan2(hy, hx))
         if heading < 0:
             heading += 360
         return heading
-    except:
+    except OSError:
         return 0
 
 # --- Map setup ---
