@@ -140,10 +140,29 @@ def draw_compass(frame, heading=0):
     return frame
 
 def draw_clock(frame):
-    now = datetime.datetime.now().strftime("%H:%M:%S")
-    color = (0,0,255)  # red
-    cv2.putText(frame, now, (20,40), cv2.FONT_HERSHEY_SIMPLEX,
-                1.0, color, 2)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 1.0
+    thickness = 2
+    blue = (255, 0, 0)  # Blue in BGR
+    white = (255, 255, 255)
+
+    time_str = datetime.datetime.now().strftime("%H:%M:%S")
+    hours = time_str[:2]
+    remainder = time_str[2:]
+    origin = (20, 40)
+
+    (hour_width, _), _ = cv2.getTextSize(hours, font, font_scale, thickness)
+
+    cv2.putText(frame, hours, origin, font, font_scale, blue, thickness)
+    cv2.putText(
+        frame,
+        remainder,
+        (origin[0] + hour_width, origin[1]),
+        font,
+        font_scale,
+        white,
+        thickness,
+    )
     return frame
 
 # --- Camera (Picamera2) ---
