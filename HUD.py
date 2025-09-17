@@ -34,11 +34,19 @@ AK8963_ADDR = 0x0C
 ak8963_enabled = False
 
 bus.write_byte_data(MPU_ADDR, 0x6B, 0)  # Wake up MPU
-bus.write_byte_data(MPU_ADDR, 0x37, 0x02)  # Enable bypass to access AK8963 directly
-bus.write_byte_data(MPU_ADDR, 0x6A, 0x00)  # Disable master mode on the MPU
-bus.write_byte_data(AK8963_ADDR, 0x0A, 0x16)  # AK8963: 16-bit output, continuous mode 2 (100 Hz)
-time.sleep(0.01)  # Allow magnetometer startup time per datasheet
-ak8963_enabled = True
+try:
+    bus.write_byte_data(MPU_ADDR, 0x37, 0x02)  # Enable bypass to access AK8963 directly
+    bus.write_byte_data(MPU_ADDR, 0x6A, 0x00)  # Disable master mode on the MPU
+    bus.write_byte_data(AK8963_ADDR, 0x0A, 0x16)  # AK8963: 16-bit output, continuous mode 2 (100 Hz)
+    time.sleep(0.01)  # Allow magnetometer startup time per datasheet
+
+    who_am_i = bus.read_byte_data(AK8963_ADDR, 0x00)
+    if who_am_i == 0x48:
+        ak8963_enabled = True
+    else:
+        print(f"Warning: Unexpected AK8963 WHO_AM_I response: 0x{who_am_i:02X}. Compass disabled.")
+except OSError as exc:
+    print(f"Warning: Failed to initialize AK8963 magnetometer: {exc}")
 
 def read_word(adr, addr):
     high = bus.read_byte_data(adr, addr)
